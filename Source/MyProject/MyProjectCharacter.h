@@ -122,7 +122,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsRunning = false;
 
-
 public:
 	/** Stamina **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stamina")
@@ -136,6 +135,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stamina")
 	float StaminaRecoverPerSec = 15.0f;
+
+	UFUNCTION(BlueprintCallable, Category = "Stamina")
+	void RecoverStamina(float Amount);
 
 	/** Stamina UI **/
 	UFUNCTION(BlueprintCallable,Category="Stamina")

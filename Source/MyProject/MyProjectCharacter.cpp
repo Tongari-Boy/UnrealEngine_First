@@ -199,6 +199,11 @@ void AMyProjectCharacter::Tick(float DeltaTime)
 	Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
 }
 
+void AMyProjectCharacter::RecoverStamina(float Amount)
+{
+	Stamina = FMath::Clamp(Stamina + Amount, 0.0f, MaxStamina);
+}
+
 float AMyProjectCharacter::GetStaminaPercent() const
 {
 	return Stamina / MaxStamina;
