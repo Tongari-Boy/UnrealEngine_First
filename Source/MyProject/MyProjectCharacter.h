@@ -1,136 +1,95 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Logging/LogMacros.h"
+#include "InputMappingContext.h"
 #include "MyProjectCharacter.generated.h"
+
 
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 class UUserWidget;
+class ATutorialSignActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
-/**
- *  A simple player-controllable third person character
- *  Implements a controllable orbiting camera
- */
 UCLASS()
-class AMyProjectCharacter : public ACharacter
+class MYPROJECT_API AMyProjectCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
-
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FollowCamera;
-
-	virtual void Tick(float DeltaTime) override;
-	
-protected:
-
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* JumpAction;
-
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* MoveAction;
-
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* LookAction;
-
-	/** Mouse Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* MouseLookAction;
-
-	/** ダッシュ Input Action **/
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* RunAction;
-
 public:
-
-	/** Constructor */
-	AMyProjectCharacter();	
+	//Constructor
+	AMyProjectCharacter();
 
 protected:
 	virtual void BeginPlay() override;
-
-protected:
-
-	/** Initialize input action bindings */
+	virtual void Tick(float DeltaTime) override;
+	//Initialize input action bindings
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-protected:
 
-	/** Called for movement input */
-	void Move(const FInputActionValue& Value);
+	/* === Components ===*/
 
-	/** Called for looking input */
-	void Look(const FInputActionValue& Value);
+	//Camera boom positioning the camera behind the character
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;
 
-public:
+	//Follow camera
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FollowCamera;
 
-	/** Handles move inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoMove(float Right, float Forward);
+	/* === Input Actions === */
 
-	/** Handles look inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoLook(float Yaw, float Pitch);
+	//Enhanced Input Mapping Context
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputMappingContext* DefaultMappingContext;
 
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpStart();
+	//Jump Input Action
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* JumpAction;
 
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpEnd();
+	//Move Input Action
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* MoveAction;
 
-public:
+	//Look Input Action
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* LookAction;
 
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	//Mouse Look Input Action
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* MouseLookAction;
 
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	//ダッシュ Input Action
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* RunAction;
 
-public:
-	/** Movementのスピード **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	//インタラクト アクション
+	UPROPERTY(EditAnywhere,Category = "Input")
+	UInputAction* InteractAction;
+
+	/* === Movement === */
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Speed")
 	float WalkSpeed = 600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float RunSpeed = 1200.0f;
 
-	/** ダッシュ機能 **/
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void StartRun();
-
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void StopRun();
-
-	/** ダッシュフラグ **/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsRunning = false;
 
-public:
-	/** Stamina **/
+	/* === Stamina === */
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stamina")
 	float MaxStamina = 100.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Stamina")
 	float Stamina = 100.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stamina")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Config")
 	float StaminaDrainPerSec = 25.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stamina")
@@ -139,13 +98,35 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stamina")
 	void RecoverStamina(float Amount);
 
-	/** Stamina UI **/
-	UFUNCTION(BlueprintCallable,Category="Stamina")
-	float GetStaminaPercent() const;
+	/* === UI === */
 
-	UPROPERTY(EditAnywhere,Category="UI")
+	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUserWidget> StaminaWidgetClass;
 
 	UPROPERTY()
 	UUserWidget* StaminaWidget;
+
+	/* === Tutorial === */
+
+	UPROPERTY()
+	ATutorialSignActor* CurrentSign;
+
+	/* === Input callbacks ===*/
+
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+
+	void StartRun();
+	void StopRun();
+	void OnInteract();
+
+	/* === Overlap === */
+
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
+
+	/* === Stamina UI === */
+public:
+	UFUNCTION(BlueprintCallable, Category = "Stamina")
+	float GetStaminaPercent() const;
 };

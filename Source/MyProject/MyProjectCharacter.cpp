@@ -1,17 +1,19 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "MyProjectCharacter.h"
-#include "Engine/LocalPlayer.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "MyProject.h"
+
 #include "Blueprint/UserWidget.h"
+#include "TutorialSignActor.h"
+
+DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 AMyProjectCharacter::AMyProjectCharacter()
 {
@@ -29,28 +31,16 @@ AMyProjectCharacter::AMyProjectCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
-	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
-	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 500.f;
-	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
-	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
-	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
-	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
-
-	// Create a camera boom (pulls in towards the player if there is a collision)
+	/* Camera boom */
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
 	CameraBoom->bUsePawnControlRotation = true;
 
-	// Create a follow camera
+	/* Camera */
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	FollowCamera->SetupAttachment(CameraBoom);
 	FollowCamera->bUsePawnControlRotation = false;
-
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
 void AMyProjectCharacter::BeginPlay()
@@ -59,6 +49,23 @@ void AMyProjectCharacter::BeginPlay()
 
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
+	/* Input Mapping Context */
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (ULocalPlayer* LP = PC->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+				LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (DefaultMappingContext)
+				{
+					Subsystem->AddMappingContext(DefaultMappingContext, 0);
+				}
+			}
+		}
+	}
+
+	/* Stamina UI */
 	if(StaminaWidgetClass)
 	{
 		StaminaWidget = CreateWidget<UUserWidget>(GetWorld(), StaminaWidgetClass);
@@ -69,125 +76,16 @@ void AMyProjectCharacter::BeginPlay()
 	}
 }
 
-void AMyProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
-		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Look);
-
-		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Look);
-
-		// Running
-		if (RunAction)
-		{
-			EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Started, this, &AMyProjectCharacter::StartRun);
-			EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Completed, this, &AMyProjectCharacter::StopRun);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("RunAction is NULL"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogMyProject, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
-	}
-}
-
-void AMyProjectCharacter::Move(const FInputActionValue& Value)
-{
-	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
-
-	// route the input
-	DoMove(MovementVector.X, MovementVector.Y);
-}
-
-void AMyProjectCharacter::Look(const FInputActionValue& Value)
-{
-	// input is a Vector2D
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
-
-	// route the input
-	DoLook(LookAxisVector.X, LookAxisVector.Y);
-}
-
-void AMyProjectCharacter::DoMove(float Right, float Forward)
-{
-	if (GetController() != nullptr)
-	{
-		// find out which way is forward
-		const FRotator Rotation = GetController()->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// add movement 
-		AddMovementInput(ForwardDirection, Forward);
-		AddMovementInput(RightDirection, Right);
-	}
-}
-
-void AMyProjectCharacter::DoLook(float Yaw, float Pitch)
-{
-	if (GetController() != nullptr)
-	{
-		// add yaw and pitch input to controller
-		AddControllerYawInput(Yaw);
-		AddControllerPitchInput(Pitch);
-	}
-}
-
-void AMyProjectCharacter::DoJumpStart()
-{
-	// signal the character to jump
-	Jump();
-}
-
-void AMyProjectCharacter::DoJumpEnd()
-{
-	// signal the character to stop jumping
-	StopJumping();
-}
-
-void AMyProjectCharacter::StartRun()
-{
-	if (Stamina <= 0.0f)
-		return;
-
-	bIsRunning = true;
-	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-}
-
-void AMyProjectCharacter::StopRun()
-{
-	bIsRunning = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-}
-
-void AMyProjectCharacter::Tick(float DeltaTime)
+void AMyProjectCharacter::Tick(float DeltaTime) 
 {
 	Super::Tick(DeltaTime);
 
 	if (bIsRunning)
 	{
 		Stamina -= StaminaDrainPerSec * DeltaTime;
-
-		if(Stamina <= 0.0f)
+		if (Stamina <= 0.f)
 		{
-			Stamina = 0.0f;
+			Stamina = 0.f;
 			StopRun();
 		}
 	}
@@ -196,12 +94,107 @@ void AMyProjectCharacter::Tick(float DeltaTime)
 		Stamina += StaminaRecoverPerSec * DeltaTime;
 	}
 
-	Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
+	Stamina = FMath::Clamp(Stamina, 0.f, MaxStamina);
+}
+
+void AMyProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Set up action bindings
+	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+		// Moving
+		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Move);
+		// Looking
+		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Look);
+		// Jumping
+		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		// Running
+		EIC->BindAction(RunAction, ETriggerEvent::Started, this, &AMyProjectCharacter::StartRun);
+		EIC->BindAction(RunAction, ETriggerEvent::Completed, this, &AMyProjectCharacter::StopRun);
+		// Interct
+		EIC->BindAction(InteractAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::OnInteract);
+	}
+}
+
+void AMyProjectCharacter::Move(const FInputActionValue& Value)
+{
+	const FVector2D Vec = Value.Get<FVector2D>();
+
+	if (!Controller) return;
+
+	const FRotator YawRot(0.f, Controller->GetControlRotation().Yaw, 0.f);
+
+	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(Forward, Vec.Y);
+	AddMovementInput(Right, Vec.X);
+}
+
+void AMyProjectCharacter::Look(const FInputActionValue& Value)
+{
+	const FVector2D LookAxis = Value.Get<FVector2D>();
+	// 左右（Yaw）
+	AddControllerYawInput(LookAxis.X);
+	// 上下（Pitch）
+	AddControllerPitchInput(LookAxis.Y);
+}
+
+void AMyProjectCharacter::StartRun()
+{
+	if (Stamina <= 0.0f)
+		return;
+	bIsRunning = true;
+	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+}
+void AMyProjectCharacter::StopRun()
+{
+	bIsRunning = false;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
 void AMyProjectCharacter::RecoverStamina(float Amount)
 {
 	Stamina = FMath::Clamp(Stamina + Amount, 0.0f, MaxStamina);
+}
+
+void AMyProjectCharacter::OnInteract()
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnInteract called"));
+
+	if (CurrentSign)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnInteract pressed"));
+		CurrentSign->OnInteract();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentSign is NULL"));
+	}
+}
+
+void AMyProjectCharacter::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	UE_LOG(LogTemp, Warning, TEXT("Overlap with: %s"), *GetNameSafe(OtherActor));
+
+	if (ATutorialSignActor* Sign = Cast<ATutorialSignActor>(OtherActor))
+	{
+		CurrentSign = Sign;
+		UE_LOG(LogTemp, Warning, TEXT("TutorialSign detected"));
+	}
+}
+void AMyProjectCharacter::NotifyActorEndOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorEndOverlap(OtherActor);
+
+	if (OtherActor == CurrentSign)
+	{
+		CurrentSign = nullptr;
+	}
 }
 
 float AMyProjectCharacter::GetStaminaPercent() const
