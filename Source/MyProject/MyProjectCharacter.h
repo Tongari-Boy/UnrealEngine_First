@@ -59,10 +59,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* LookAction;
 
-	//Mouse Look Input Action
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* MouseLookAction;
-
 	//ƒ_ƒbƒVƒ… Input Action
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* RunAction;
