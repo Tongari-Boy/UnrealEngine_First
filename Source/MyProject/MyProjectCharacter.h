@@ -21,7 +21,7 @@ class MYPROJECT_API AMyProjectCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	//Constructor
+	//コンストラクタ
 	AMyProjectCharacter();
 
 protected:

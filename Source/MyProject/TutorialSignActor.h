@@ -24,9 +24,14 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	//Trigger Box Component
+	/* === Trigger === */
 	UPROPERTY(VisibleAnywhere,Category="Components")
 	class UBoxComponent* TriggerBox;
+
+
+	/* === State === */
+	UPROPERTY(VisibleAnywhere, Category = "State")
+	bool bCanInteract = false;
 
 	/* === UI === */
 	//Tutorial Widget Class
@@ -36,4 +41,35 @@ protected:
 	//Tutorial Widget Instance
 	UPROPERTY()
 	UUUserWidget* TutorialWidget;
+
+	/* === UI for press E === */
+
+	//press E widget class
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUserWidget> PressEWidgetClass;
+
+	//press E widget instance
+	UPROPERTY()
+	UUserWidget* PressEWidget;
+
+	/* === Overlap === */
+
+	UFUNCTION()
+	void OnTriggerBegin(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnTriggerEnd(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
+
 };

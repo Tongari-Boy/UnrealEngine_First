@@ -12,6 +12,20 @@ ATutorialSignActor::ATutorialSignActor()
 
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
 	TriggerBox->SetGenerateOverlapEvents(true);
+
+	//Overlap EventsÝ’è
+	TriggerBox->SetGenerateOverlapEvents(true);
+	TriggerBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	TriggerBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TriggerBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	TriggerBox->OnComponentBeginOverlap.AddDynamic(
+		this, &ATutorialSignActor::OnTriggerBegin
+	);
+
+	TriggerBox->OnComponentEndOverlap.AddDynamic(
+		this, &ATutorialSignActor::OnTriggerEnd
+	);
 }
 
 void ATutorialSignActor::BeginPlay()
@@ -21,6 +35,13 @@ void ATutorialSignActor::BeginPlay()
 
 void ATutorialSignActor::OnInteract()
 {
+	if (!bCanInteract) return;
+
+	if (PressEWidget)
+	{
+		PressEWidget->RemoveFromParent();
+	}
+
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC) return;
 
@@ -80,4 +101,51 @@ void ATutorialSignActor::CloseTutorial()
 	PC->bShowMouseCursor = false;
 
 	UE_LOG(LogTemp, Warning, TEXT("Tutorial Sign Closed!"));
+}
+
+void ATutorialSignActor::OnTriggerBegin(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult
+)
+{
+	if (!OtherActor || OtherActor != GetWorld()->GetFirstPlayerController()->GetPawn())
+		return;
+
+	//Press E •\Ž¦
+	if (!PressEWidget && PressEWidgetClass)
+	{
+		PressEWidget = CreateWidget<UUserWidget>(
+			GetWorld(),
+			PressEWidgetClass
+		);
 	}
+
+	if (PressEWidget && !PressEWidget->IsInViewport())
+	{
+		PressEWidget->AddToViewport();
+	}
+
+	bCanInteract = true;
+}
+
+void ATutorialSignActor::OnTriggerEnd(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex
+)
+{
+	if (!OtherActor || OtherActor != GetWorld()->GetFirstPlayerController()->GetPawn())
+		return;
+
+	if (PressEWidget)
+	{
+		PressEWidget->RemoveFromParent();
+	}
+
+	bCanInteract = false;
+}
