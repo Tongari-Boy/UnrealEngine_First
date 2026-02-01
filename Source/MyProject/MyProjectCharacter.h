@@ -34,11 +34,11 @@ protected:
 	/* === Components ===*/
 
 	//Camera boom positioning the camera behind the character
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
 
 	//Follow camera
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
 	/* === Input Actions === */
@@ -48,15 +48,15 @@ protected:
 	UInputMappingContext* DefaultMappingContext;
 
 	//Jump Input Action
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* JumpAction;
 
 	//Move Input Action
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* MoveAction;
 
 	//Look Input Action
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* LookAction;
 
 	//ダッシュ Input Action
@@ -64,7 +64,7 @@ protected:
 	UInputAction* RunAction;
 
 	//インタラクト アクション
-	UPROPERTY(EditAnywhere,Category = "Input")
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* InteractAction;
 
 	/* === Movement === */
@@ -94,7 +94,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Stamina")
 	void RecoverStamina(float Amount);
 
-	/* === UI === */
+	/* === Stamina UIの見た目 === */
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUserWidget> StaminaWidgetClass;
@@ -121,8 +121,19 @@ protected:
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
 
-	/* === Stamina UI === */
+	/* === Staminaうけとり=== */
 public:
 	UFUNCTION(BlueprintCallable, Category = "Stamina")
 	float GetStaminaPercent() const;
+
+	/* === Collection Item (一時的に保持する) === */
+
+	//ステージで取得したアイテムID
+	UPROPERTY()
+	TSet<int32> TempCollectedItemIDs;
+
+	//ステージID
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stage")
+	FName CurrentStageID;
+
 };
